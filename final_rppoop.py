@@ -8,6 +8,8 @@ from tkinter import Toplevel, Label, Frame
 import mysql.connector
 import os
 import re
+from tkinter import filedialog
+import csv
 
 # Create the main tkinter window
 root = tk.Tk()
@@ -262,8 +264,63 @@ def window2():
             download_button.place(x=570, y=300)
             
 
-            
+        def upload_data():
+                file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
 
+                if not file_path:
+                    return  # User canceled the file dialog
+
+                # Connect to the MySQL database
+                db_connection = mysql.connector.connect(
+                    host="localhost",
+                    user="root",
+                    password="Sainath@2521",
+                    database="fy22"
+                )
+
+                # Create a cursor object to execute SQL queries
+                cursor = db_connection.cursor()
+
+                try:
+                    with open(file_path, 'r') as csv_file:
+                        csv_reader = csv.reader(csv_file)
+
+                        for row in csv_reader:
+                            if len(row) != 7:
+                                messagebox.showerror("Error", "Invalid CSV format. Each row should have 7 columns.")
+                                return
+
+                            mis, student_name, division, batches, branch, coep_mail, mob_no = row
+                            mob_no = mob_no.strip()
+
+                            # Data validation (similar to your insert_data function)
+                            if (not mis.isdigit() or
+                                len(mob_no) != 10 or not mob_no.isdigit() or
+                                not re.match(r"^[A-Za-z ]+$", student_name) or
+                                not re.match(r".+@coeptech.ac.in$", coep_mail)):
+                                messagebox.showerror("Error", "Invalid data in the CSV file.")
+                                return
+
+                            # Prepare the INSERT statement
+                            insert_query = "INSERT INTO fydata (MIS, Student_Name, Division, Batches, Branch, Coep_Mail, mob_no) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                            values = (mis, student_name, division, batches, branch, coep_mail, mob_no)
+
+                            # Execute the INSERT statement
+                            cursor.execute(insert_query, values)
+
+                    # Commit the changes to the database
+                    db_connection.commit()
+
+                    # Display a success message
+                    messagebox.showinfo("Success", "Data uploaded successfully.")
+                except Exception as error:
+                    # Display an error message
+                    messagebox.showerror("Error", str(error))
+                finally:
+                    # Close the cursor and database connection
+                    cursor.close()
+                    db_connection.close()
+        
         def window6():
             window6 = Toplevel(window4)
             window6.geometry("2000x2000")
@@ -388,6 +445,11 @@ def window2():
 
             clear_button = tk.Button(window6, text="Clear", command=clear_entries, bg="gray", fg="white", relief=tk.RAISED, padx=10, pady=5)
             clear_button.pack()
+            
+            
+            upload_button = tk.Button(window6, text="Upload Data", command=upload_data, bg="green", fg="white", relief=tk.RAISED, padx=10, pady=5)
+            upload_button.pack(pady=50)
+
 
 
         def window7():
